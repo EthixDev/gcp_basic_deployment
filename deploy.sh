@@ -25,6 +25,7 @@ fi
 gcloud services enable \
   artifactregistry.googleapis.com \
   run.googleapis.com \
+  cloudbuild.googleapis.com \
   --project="$PROJECT_ID" \
   --quiet
 
@@ -39,15 +40,15 @@ if ! gcloud artifacts repositories describe "$REPO" \
     --quiet
 fi
 
-echo "🐳 Building Docker image..."
 IMAGE_URI="$REGION-docker.pkg.dev/$PROJECT_ID/$REPO/$IMAGE_NAME:$IMAGE_TAG"
 
-docker build -t "$IMAGE_URI" .
-echo "🔑 Configuring Docker authentication for Artifact Registry..."
-gcloud auth configure-docker "$REGION-docker.pkg.dev" --quiet
-docker push "$IMAGE_URI"
+echo "🏗️ Building and pushing image with Cloud Build..."
+gcloud builds submit . \
+  --tag "$IMAGE_URI" \
+  --project "$PROJECT_ID" \
+  --quiet
 
-echo "🚀 Deploying new image to Cloud Run service..."
+echo "🚀 Deploying image to Cloud Run..."
 gcloud run deploy "$SERVICE_NAME" \
   --image "$IMAGE_URI" \
   --region "$REGION" \
